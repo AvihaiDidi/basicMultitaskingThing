@@ -61,7 +61,12 @@ char* popTask(coms* c);
 void printComs(coms* c);
 
 // adds a command to the top of the list
+// DOES NOT free the memory used by the command
 void addCommand(coms* c, char* command);
+
+// adds a bunch of commands to the top of the list
+// DOES NOT free the memory used by the commands
+void addCommands(coms* c, char* commands, int len);
 
 // gets an initialized coms pointer and a file path, adds all of the commands from path to c
 void addCommandsFromFile(coms* c, char* path);

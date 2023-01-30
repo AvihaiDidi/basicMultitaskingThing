@@ -140,7 +140,11 @@ void printComs(coms* c) {
 	pthread_mutex_unlock(&c->lock);
 }
 
-void addCommand(coms* c, char* command){
+void addCommand(coms* c, char* command) {
+	printf("IMPLEMENT THIS\n"); // TODO: IMPLEMENT THIS, AND USE IT IN addCommandsFromFile()
+}
+
+void addCommands(coms* c, char* commands, int len) {
 	printf("IMPLEMENT THIS\n"); // TODO: IMPLEMENT THIS, AND USE IT IN addCommandsFromFile()
 }
 
