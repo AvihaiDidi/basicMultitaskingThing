@@ -5,13 +5,6 @@ This file just has the implementations
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <time.h>
-#include <pthread.h>
-#include <unistd.h>
-
 #include "command_list.h"
 
 void BEEP() {
@@ -113,7 +106,7 @@ int getInactiveThreadId(coms* c) {
 static void toggleActive(coms* c, int id) {
 	pthread_mutex_lock(&c->lock);
 	if (c->thread_count <= id || id < 0) {
-		printf("%d\t is bad thread id\n", id);
+		printf("%d\t is a bad thread id\n", id);
 		pthread_mutex_unlock(&c->lock);
 		return;
 	}
@@ -141,11 +134,23 @@ void printComs(coms* c) {
 }
 
 void addCommand(coms* c, char* command) {
-	printf("IMPLEMENT THIS\n"); // TODO: IMPLEMENT THIS, AND USE IT IN addCommandsFromFile()
+	pthread_mutex_lock(&c->lock);
+	c->commands[c->len] = copyStr(buffer);
+	c->len++;
+	if (c->len == c->clen)
+		doubleClen(c);
+	pthread_mutex_unlock(&c->lock);
 }
 
 void addCommands(coms* c, char* commands, int len) {
-	printf("IMPLEMENT THIS\n"); // TODO: IMPLEMENT THIS, AND USE IT IN addCommandsFromFile()
+	pthread_mutex_lock(&c->lock);
+	// check if the length should be doubled in advance, rather than each time
+	if (c->clen <= c->len + len)
+		doubleClen(c);
+	for (int i=0; i<len; i++)
+		c->commands[c->len + i] = copyStr(buffer);
+	c->len += len;
+	pthread_mutex_unlock(&c->lock);
 }
 
 void addCommandsFromFile(coms* c, char* path) {
