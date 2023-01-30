@@ -7,6 +7,8 @@ TODO: maybe make it function like a queue instead in the future
 
 */
 
+#ifndef COMMANDLIST
+#define COMMANDLIST
 
 char UTF8_BEEP = 7;
 int BUFFER_SIZE = 10000;
@@ -77,3 +79,5 @@ void* workerThreadFunc(void* args);
 	note that this function DOESN'T WAIT FOR ALL THREADS TO EXIT, IT JUST ASSIGNS ALL OF THE WORK TO THE AVILABLE THREADS AND THEN EXITS
 	this one should only run once in one thread */
 void processList(coms* c);
+
+#endif
