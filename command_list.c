@@ -1,6 +1,6 @@
 /*
 
-Function documentation (comments) are in the header file
+Function documentation (comments) is in the header file
 This file just has the implementations
 
 */
