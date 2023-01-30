@@ -1,5 +1,9 @@
-// random crap, not a header file but whatever
-// also not actually random, this is just the work queue functions
+/*
+
+Function documentation (comments) are in the header file
+This file just has the implementations
+
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,28 +12,11 @@
 #include <pthread.h>
 #include <unistd.h>
 
-char UTF8_BEEP = 7;
-int BUFFER_SIZE = 10000;
-int DEFAULT_THREAD_COUNT = 4;
-int BITS_IN_BYTE = 8; //bery important const
+#include "command_list.h"
 
 void BEEP() {
 	printf("%c", UTF8_BEEP);
 }
-
-//TODO: make sure you use mutex around all non-static function, but not in any static function
-//TODO: once that's done, make sure that all calls to static functions are in locked regions
-//TODO: idk just don't try to lock it twice in a row? maybe add a prefix to funcs that lock it?
-
-typedef struct command_list {
-	int len;  // actual length of the commands list
-	int clen; // length of the space allocated for commands, must always be >= len
-	char** commands;
-	pthread_mutex_t lock;
-	int thread_count;
-	pthread_t* threads;
-	unsigned int activet;
-} coms;
 
 coms* initComs(int thread_count) {
 	if (sizeof(unsigned int) * BITS_IN_BYTE < thread_count) {
@@ -51,11 +38,6 @@ coms* initComs(int thread_count) {
 	return c;
 }
 
-coms* initComsDefault() {
-	return initComs(DEFAULT_THREAD_COUNT);
-}
-
-// allocates more memory for future commands to be added, this should be done when len==clen
 static void doubleClen(coms* c) {
 	c->clen *= 2;
 	char** temp = malloc(sizeof(char*) * c->clen);
@@ -91,8 +73,6 @@ static char* copyStr(char* src) {
 	return tar;
 }
 
-int getActiveThreadId(coms* c);
-
 void killComs(coms* c) {
 	for (int i=0;i<c->thread_count;i++)
 		pthread_join(c->threads[i], NULL);
@@ -104,7 +84,6 @@ void killComs(coms* c) {
 	free(c);
 }
 
-// returns the index of an active thread, if all threads are inactive returns -1
 int getActiveThreadId(coms* c) {
 	int mask = 1;
 	pthread_mutex_lock(&c->lock);
@@ -117,11 +96,9 @@ int getActiveThreadId(coms* c) {
 	return -1;
 }
 
-// returns the index of an inactive thread, if no thread is avilabile returns -1
 int getInactiveThreadId(coms* c) {
 	int mask = 1;
 	pthread_mutex_lock(&c->lock);
-	//printf("activet\t%d\n", c->activet);
 	for (int i=0;i<c->thread_count;i++) {
 		if (mask & ~c->activet) {
 			pthread_mutex_unlock(&c->lock);
@@ -133,7 +110,7 @@ int getInactiveThreadId(coms* c) {
 	return -1;
 }
 
-void toggleActive(coms* c, int id) {
+static void toggleActive(coms* c, int id) {
 	pthread_mutex_lock(&c->lock);
 	if (c->thread_count <= id || id < 0) {
 		printf("%d\t is bad thread id\n", id);
@@ -163,8 +140,11 @@ void printComs(coms* c) {
 	pthread_mutex_unlock(&c->lock);
 }
 
-// gets an initialized coms pointer and a file path, adds all of the commands from path to c
-void addCommands(coms* c, char* path) {
+void addCommand(coms* c, char* command){
+	printf("IMPLEMENT THIS\n"); // TODO: IMPLEMENT THIS, AND USE IT IN addCommandsFromFile()
+}
+
+void addCommandsFromFile(coms* c, char* path) {
 	FILE* f;
 	char* buffer = malloc(BUFFER_SIZE * sizeof(char));
 	f = fopen(path, "r");
@@ -185,14 +165,15 @@ void addCommands(coms* c, char* path) {
 }
 
 void* workerThreadFunc(void* args) {
-	// pointer crimes
+	// pointer crimes, extremly illegal
 	coms* c = (coms*)(((void**)args)[0]);
 	char* task = (char*)(((void**)args)[1]);
 	int* worker_id = (int*)(((void**)args)[2]);
+	// TODO: you need to get the command type from here (char*)(((void**)args)[3])
 	int id_temp = *worker_id;
 	//TODO: actually perform a task, for now just print it and sleep
 	// Do task
-	printf("%s\n", task);
+	printf("%s\n", task); // TODO: implement all the possible actions in worker_thread_functions
 	sleep(1);
 	// set self to inactive and quit
 	toggleActive(c, id_temp);
@@ -200,19 +181,15 @@ void* workerThreadFunc(void* args) {
 	free(task);
 	free(args);
 }
-// this is the big important function
-// while len > 0, remove tasks and perform them
-// note that this function DOESN'T WAIT FOR ALL THREADS TO EXIT, IT JUST ASSIGNS ALL OF THE WORK TO THE AVILABLE THREADS AND THEN EXITS
-void processQueue(coms* c) { // this one should only run once in one thread
+
+void processList(coms* c) {
 	while (0 < c->len) {
-		//printf("len is currently\t\t%d\n", c->len);
 		char* task = popTask(c);
 		int* worker_id = malloc(sizeof(int));
 		*worker_id = getInactiveThreadId(c);
 		int time_counter = 1;
 		while (*worker_id == -1) {
-			//printf("WE WAITIN %d seconds\n", time_counter++);
-			sleep(1); //TODO: this is dumb, use a second mutex instead of this crap (no, can't be bothered)
+			sleep(1); //TODO: this is dumb, use a second mutex instead of this crap
 			*worker_id = getInactiveThreadId(c);
 		}
 		toggleActive(c, *worker_id);
@@ -220,41 +197,7 @@ void processQueue(coms* c) { // this one should only run once in one thread
 		args[0] = c;
 		args[1] = task;
 		args[2] = worker_id;
+		// TODO: add the task type to the 3rd (4th) element here
 		pthread_create(&c->threads[*worker_id], NULL, workerThreadFunc, (void*)args);
 	}
 }
-
-// the dump
-/*
-
-this version doesn't work, int pointer bad?
-void* workerThreadFunc(void* args) {
-	// pointer crimes
-	coms* c = (coms*)(((void**)args)[0]);
-	char* task = (char*)(((void**)args)[1]);
-	int worker_id = *(int*)(((void**)args)[2]);
-	printf("In the thread the id is\t%d\n", worker_id);
-	// Do task
-	printf("%s\n", task);
-	free(task);
-	sleep(5);
-	// set self to inactive and quit
-	toggleActive(c, worker_id);
-	free(args);
-}
-
-this version screws up coz the number of active threads can can between the first and third line
-void killComs(coms* c) {
-	int active = getActiveThreadId(c);
-	while (active != -1) {
-		pthread_join(c->threads[active], NULL);
-		active = getActiveThreadId(c);
-	}
-	free(c->threads);
-	for (int i=0;i<c->len;i++)
-		free(c->commands[i]);
-	free(c->commands);
-	pthread_mutex_destroy(&c->lock);
-	free(c);
-}
-*/
