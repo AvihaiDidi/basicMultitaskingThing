@@ -3,6 +3,8 @@
 Function documentation (comments) is in the header file
 This file just has the implementations
 
+(The static functions do have documentation here)
+
 */
 
 #include <stdio.h>
@@ -23,6 +25,57 @@ void BEEP() {
 	printf("%c", UTF8_BEEP);
 }
 
+// allocates more memory for future commands to be added, this should be done when len==clen
+static void doubleClen(coms* c) {
+	c->clen *= 2;
+	char** temp = malloc(sizeof(char*) * c->clen);
+	for (int i=0;i<c->len;i++)
+		temp[i] = c->commands[i];
+	free(c->commands);
+	c->commands = temp;
+}
+
+// returns the length of s, \0 and \n are BOTH considered valid endpoints for the string
+// if neither is present it'll probably segfault
+static int strLen(char* s) {
+	if (s[0] == '\0' || s[0] == '\n')
+		return 0;
+	char c;
+	int i = 0;
+	do {
+		c = s[i++];
+	} while (c != '\0' && s[0] != '\n');
+	return i;
+}
+
+// copies src and returns the starting adress, src isn't modified
+static char* copyStr(char* src) {
+	char c;
+	int i = 0;
+	char* tar = malloc(sizeof(char)*(strLen(src) + 1));
+	do {
+		c = src[i];
+		if (c == '\n') {
+			tar[i] == '\0';
+			break;
+		}
+		tar[i++] = c;
+	} while (c != '\0' && c != '\n');
+	return tar;
+}
+
+// toggles the activity status of a thread, this should be called whenever a thread starts executing a command (by the function starting the thread) and whenever the thread finishes it's command (by the thread itself)
+static void toggleActive(coms* c, int id) {
+	pthread_mutex_lock(&c->lock);
+	if (c->thread_count <= id || id < 0) {
+		printf("%d\t is a bad thread id\n", id);
+		pthread_mutex_unlock(&c->lock);
+		return;
+	}
+	c->activet = c->activet ^ (1 << id);
+	pthread_mutex_unlock(&c->lock);
+}
+
 coms* initComs(int thread_count) {
 	if (sizeof(unsigned int) * BITS_IN_BYTE < thread_count) {
 		printf("activet is represented using an unsigned int and can only keep track of %lu threads, %d is too high for it.\n", sizeof(unsigned int) * BITS_IN_BYTE, thread_count);
@@ -41,41 +94,6 @@ coms* initComs(int thread_count) {
 	c->threads = malloc(sizeof(pthread_t)*c->thread_count);
 	c->activet = 0;
 	return c;
-}
-
-static void doubleClen(coms* c) {
-	c->clen *= 2;
-	char** temp = malloc(sizeof(char*) * c->clen);
-	for (int i=0;i<c->len;i++)
-		temp[i] = c->commands[i];
-	free(c->commands);
-	c->commands = temp;
-}
-
-static int strLen(char* s) {
-	if (s[0] == '\0' || s[0] == '\n')
-		return 0;
-	char c;
-	int i = 0;
-	do {
-		c = s[i++];
-	} while (c != '\0' && s[0] != '\n');
-	return i;
-}
-
-static char* copyStr(char* src) {
-	char c;
-	int i = 0;
-	char* tar = malloc(sizeof(char)*(strLen(src) + 1));
-	do {
-		c = src[i];
-		if (c == '\n') {
-			tar[i] == '\0';
-			break;
-		}
-		tar[i++] = c;
-	} while (c != '\0' && c != '\n');
-	return tar;
 }
 
 void killComs(coms* c) {
@@ -113,17 +131,6 @@ int getInactiveThreadId(coms* c) {
 	}
 	pthread_mutex_unlock(&c->lock);
 	return -1;
-}
-
-static void toggleActive(coms* c, int id) {
-	pthread_mutex_lock(&c->lock);
-	if (c->thread_count <= id || id < 0) {
-		printf("%d\t is a bad thread id\n", id);
-		pthread_mutex_unlock(&c->lock);
-		return;
-	}
-	c->activet = c->activet ^ (1 << id);
-	pthread_mutex_unlock(&c->lock);
 }
 
 char* popCommand(coms* c) {

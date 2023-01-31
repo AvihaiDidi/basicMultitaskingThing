@@ -27,16 +27,6 @@ typedef struct command_list {
 // initiazlie a new command list struct, prints an error message and returns NULL if initialization failed for some reason
 coms* initComs(int thread_count);
 
-// allocates more memory for future commands to be added, this should be done when len==clen
-static void doubleClen(coms* c);
-
-// returns the length s, \0 and \n are BOTH considered valid endpoints for the string
-// if neither is present it'll probably segfault
-static int strLen(char* s);
-
-// copies src and returns the starting adress, src isn't modified
-static char* copyStr(char* src);
-
 // waits for all active threads to finish executing and then frees all memory used by the command list
 void killComs(coms* c);
 
@@ -45,9 +35,6 @@ int getActiveThreadId(coms* c);
 
 // returns the index of an inactive thread, if no thread is avilabile returns -1
 int getInactiveThreadId(coms* c);
-
-// toggles the activity status of a thread, this should be called whenever a thread starts executing a command (by the function starting the thread) and whenever the thread finishes it's command (by the thread itself)
-static void toggleActive(coms* c, int id);
 
 // removes an item from the top of the list and return it
 // note that the responsibility of freeing the memory used by the command now falls on the code that called this function and not on the command list itself

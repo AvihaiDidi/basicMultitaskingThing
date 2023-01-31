@@ -3,6 +3,8 @@
 Function documentation (comments) is in the header file
 This file just has the implementations
 
+(The static functions do have documentation here)
+
 */
 
 #include <time.h>
@@ -10,6 +12,17 @@ This file just has the implementations
 #include <unistd.h>
 
 #include "worker_thread_functions.h"
+
+// handles p type commands (see commandHandler documentation)
+static void CHp(char* command) {
+	printf("%s\n", command);
+}
+
+// handles s type commands (see commandHandler documentation)
+static void CHs(char* command) {
+	CHp(command);
+	sleep(1);
+}
 
 void* commandHandler(char* command, char type) {
 	switch (type) {
@@ -24,13 +37,4 @@ void* commandHandler(char* command, char type) {
 		default:
 			printf("Unsupported operation '%c', returning NULL\n", type);
 	}
-}
-
-static void CHp(char* command) {
-	printf("%s\n", command);
-}
-
-static void CHs(char* command) {
-	CHp(command);
-	sleep(1);
 }

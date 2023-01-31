@@ -17,10 +17,4 @@ TODO: add more
 If none of the above are given, an error message is printed and NULL is returned */
 void* commandHandler(char* command, char type);
 
-// handles p type commands (see commandHandler documentation)
-static void CHp(char* command);
-
-// handles s type commands (see commandHandler documentation)
-static void CHs(char* command);
-
 #endif
