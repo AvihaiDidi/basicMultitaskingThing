@@ -26,15 +26,16 @@ void BEEP();
 
 typedef struct command_list {
 	int len;  // actual length of the commands list
-	int clen; // length of the space allocated for commands, must always be >= len
+	int clen; // length of the space allocated for command string pointers, must always be >= len
 	char** commands;
-	pthread_mutex_t lock;
+	pthread_mutex_t lock; // lock for modifing the state of the command list
+	pthread_mutex_t all_taken; // lock for when all threads are occupied, and you have to wait for some to become avilable
 	int thread_count;
 	pthread_t* threads;
 	unsigned int activet;
 } coms;
 
-// initiazlie a new command list struct, returns NULL if initialization failed for some reason
+// initiazlie a new command list struct, prints an error message and returns NULL if initialization failed for some reason
 coms* initComs(int thread_count);
 
 // allocates more memory for future commands to be added, this should be done when len==clen
@@ -87,8 +88,9 @@ void* workerThreadFunc(void* args);
 
 /*	this is the big important function
 	while len > 0, pops tasks and performs them
+	type is the way the commands should be handeled (see the documentation in worker_thread_functions.h for details)
 	note that this function DOESN'T WAIT FOR ALL THREADS TO EXIT, IT JUST ASSIGNS ALL OF THE WORK TO THE AVILABLE THREADS AND THEN EXITS
-	this one should only run once in one thread */
-void processList(coms* c);
+	this one should only run once in one thread, trying to use this function in several threads on the same command list will result in undefined behavior (i.e, it'll probably segfault) */
+void processList(coms* c, char type);
 
 #endif

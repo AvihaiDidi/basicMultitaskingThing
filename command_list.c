@@ -177,24 +177,23 @@ void* workerThreadFunc(void* args) {
 	// pointer crimes, extremly illegal
 	coms* c = (coms*)(((void**)args)[0]);
 	char* task = (char*)(((void**)args)[1]);
-	int* worker_id = (int*)(((void**)args)[2]);
-	// TODO: you need to get the command type from here (char*)(((void**)args)[3])
-	int id_temp = *worker_id;
-	//TODO: actually perform a task, for now just print it and sleep
+	int worker_id = *(int*)(((void**)args)[2]);
+	char task_type = *(char*)(((void**)args)[3]);
 	// Do task
-	printf("%s\n", task); // TODO: implement all the possible actions in worker_thread_functions
-	sleep(1);
+	commandHandler(task, task_type)
 	// set self to inactive and quit
-	toggleActive(c, id_temp);
+	toggleActive(c, worker_id);
 	free(worker_id);
 	free(task);
 	free(args);
 }
 
-void processList(coms* c) {
+void processList(coms* c char type) {
 	while (0 < c->len) {
 		char* task = popTask(c);
 		int* worker_id = malloc(sizeof(int));
+		char* task_type = malloc(sizeof(char));
+		*task_type = type;
 		*worker_id = getInactiveThreadId(c);
 		int time_counter = 1;
 		while (*worker_id == -1) {
@@ -202,11 +201,11 @@ void processList(coms* c) {
 			*worker_id = getInactiveThreadId(c);
 		}
 		toggleActive(c, *worker_id);
-		void** args = malloc(sizeof(void*) * 3);
+		void** args = malloc(sizeof(void*) * 4);
 		args[0] = c;
 		args[1] = task;
 		args[2] = worker_id;
-		// TODO: add the task type to the 3rd (4th) element here
+		args[3] = task_type;
 		pthread_create(&c->threads[*worker_id], NULL, workerThreadFunc, (void*)args);
 	}
 }
