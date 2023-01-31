@@ -1,7 +1,7 @@
 /*
 
-This code is for defining a 'class' that handles a list of tasks and performs them in multiple threads in parallal.
-Note that in practice the list of tasks functions like a stack.
+This code is for defining a 'class' that handles a list of commands and performs them in multiple threads in parallal.
+Note that in practice the list of commands functions like a stack.
 
 TODO: maybe make it function like a queue instead in the future
 
@@ -57,12 +57,12 @@ int getActiveThreadId(coms* c);
 // returns the index of an inactive thread, if no thread is avilabile returns -1
 int getInactiveThreadId(coms* c);
 
-// toggles the activity status of a thread, this should be called whenever a thread starts executing a task (by the function starting the thread) and whenever the thread finishes it's task (by the thread itself)
+// toggles the activity status of a thread, this should be called whenever a thread starts executing a command (by the function starting the thread) and whenever the thread finishes it's command (by the thread itself)
 static void toggleActive(coms* c, int id);
 
 // removes an item from the top of the list and return it
-// note that the responsibility of freeing the memory used by the task now falls on the code that called this function and not on the command list itself
-char* popTask(coms* c);
+// note that the responsibility of freeing the memory used by the command now falls on the code that called this function and not on the command list itself
+char* popCommand(coms* c);
 
 // Just prints all items currently in the list, in the order they were added (which is the opposite of the order that they will be executed, because the list functions like a stack)
 void printComs(coms* c);
@@ -87,7 +87,7 @@ void addCommandsFromFile(coms* c, char* path);
 void* workerThreadFunc(void* args);
 
 /*	this is the big important function
-	while len > 0, pops tasks and performs them
+	while len > 0, pops commands and performs them
 	type is the way the commands should be handeled (see the documentation in worker_thread_functions.h for details)
 	note that this function DOESN'T WAIT FOR ALL THREADS TO EXIT, IT JUST ASSIGNS ALL OF THE WORK TO THE AVILABLE THREADS AND THEN EXITS
 	this one should only run once in one thread, trying to use this function in several threads on the same command list will result in undefined behavior (i.e, it'll probably segfault) */

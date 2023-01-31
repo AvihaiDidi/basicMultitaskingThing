@@ -23,7 +23,7 @@ void* commandHandler(char* command, char type) {
 }
 
 static void CHp(char* command) {
-	printf("%s\n", task);
+	printf("%s\n", command);
 }
 
 static void CHs(char* command) {

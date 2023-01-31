@@ -114,16 +114,16 @@ static void toggleActive(coms* c, int id) {
 	pthread_mutex_unlock(&c->lock);
 }
 
-char* popTask(coms* c) {
+char* popCommand(coms* c) {
 	pthread_mutex_lock(&c->lock);
 	if (c->len == 0) {
 		pthread_mutex_unlock(&c->lock);
 		return NULL;
 	}
-	char* task = c->commands[c->len - 1];
+	char* command = c->commands[c->len - 1];
 	c->len--;
 	pthread_mutex_unlock(&c->lock);
-	return task;
+	return command;
 }
 
 void printComs(coms* c) {
@@ -176,24 +176,24 @@ void addCommandsFromFile(coms* c, char* path) {
 void* workerThreadFunc(void* args) {
 	// pointer crimes, extremly illegal
 	coms* c = (coms*)(((void**)args)[0]);
-	char* task = (char*)(((void**)args)[1]);
+	char* command = (char*)(((void**)args)[1]);
 	int worker_id = *(int*)(((void**)args)[2]);
-	char task_type = *(char*)(((void**)args)[3]);
-	// Do task
-	commandHandler(task, task_type)
+	char command_type = *(char*)(((void**)args)[3]);
+	// Do command
+	commandHandler(command, command_type)
 	// set self to inactive and quit
 	toggleActive(c, worker_id);
 	free(worker_id);
-	free(task);
+	free(command);
 	free(args);
 }
 
 void processList(coms* c char type) {
 	while (0 < c->len) {
-		char* task = popTask(c);
+		char* command = popCommand(c);
 		int* worker_id = malloc(sizeof(int));
-		char* task_type = malloc(sizeof(char));
-		*task_type = type;
+		char* command_type = malloc(sizeof(char));
+		*command_type = type;
 		*worker_id = getInactiveThreadId(c);
 		int time_counter = 1;
 		while (*worker_id == -1) {
@@ -203,9 +203,9 @@ void processList(coms* c char type) {
 		toggleActive(c, *worker_id);
 		void** args = malloc(sizeof(void*) * 4);
 		args[0] = c;
-		args[1] = task;
+		args[1] = command;
 		args[2] = worker_id;
-		args[3] = task_type;
+		args[3] = command_type;
 		pthread_create(&c->threads[*worker_id], NULL, workerThreadFunc, (void*)args);
 	}
 }
