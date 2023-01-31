@@ -10,17 +10,6 @@ TODO: maybe make it function like a queue instead in the future
 #ifndef COMMANDLIST
 #define COMMANDLIST
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <pthread.h>
-#include <unistd.h>
-
-char UTF8_BEEP = 7;
-int BUFFER_SIZE = 10000;
-int DEFAULT_THREAD_COUNT = 4;
-int BITS_IN_BYTE = 8; // very important const
-
 // EXTREMLY important function, it make funny beep
 void BEEP();
 

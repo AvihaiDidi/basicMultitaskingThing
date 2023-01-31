@@ -5,6 +5,10 @@ This file just has the implementations
 
 */
 
+#include <time.h>
+#include <stdio.h>
+#include <unistd.h>
+
 #include "worker_thread_functions.h"
 
 void* commandHandler(char* command, char type) {
@@ -18,7 +22,7 @@ void* commandHandler(char* command, char type) {
 			return NULL;
 		break;
 		default:
-			printf("Unsupported operation '%c', returning NULL\n", &type);
+			printf("Unsupported operation '%c', returning NULL\n", type);
 	}
 }
 

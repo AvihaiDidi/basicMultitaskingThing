@@ -7,8 +7,6 @@
 #ifndef WTF
 #define WTF
 
-#include <time.h>
-
 /* gets a command and a char indicating command type, what it will do with the command depends on the char
 The return value depends on the type.
 Note that none of the options change anything about the command itself
@@ -16,8 +14,7 @@ The avilable options are:
 p	print the command to the screen and return NULL
 s	print the command to the screen, sleep for 1 second, and then return NULL
 TODO: add more
-If none of the above are given, an error message is printed and NULL is returned
-*/
+If none of the above are given, an error message is printed and NULL is returned */
 void* commandHandler(char* command, char type);
 
 // handles p type commands (see commandHandler documentation)
@@ -25,8 +22,5 @@ static void CHp(char* command);
 
 // handles s type commands (see commandHandler documentation)
 static void CHs(char* command);
-
-// handles b type commands (see commandHandler documentation)
-static *void CHb(char* command);
 
 #endif

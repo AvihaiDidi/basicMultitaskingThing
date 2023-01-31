@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <time.h>
 
-#include "miscfuncs.h"
+#include "command_list.h"
 
 void uhhh1();
 void uhhh2();
@@ -17,12 +17,13 @@ int main() {
 
 // same as uhhh2 but to miscfuncs.h and with MORE threads, just to see what happens
 void uhhh3() {
+	printf("uh\n");
 	coms* c = initComs(32);
 	if (c == NULL)
 		return;
-	addCommands(c, "miscfuncs.h"); addCommands(c, "miscfuncs.h"); addCommands(c, "miscfuncs.h");
+	addCommandsFromFile(c, "main.c");
 	printf("========================\taddCommands\tfinished\n");
-	processQueue(c);
+	processList(c, 's');
 	printf("========================\tprocessQueue\tfinished\n");
 	killComs(c);
 	printf("========================\tkillComs\tfinished\n");
@@ -33,8 +34,8 @@ void uhhh2() {
 	coms* c = initComs(20);
 	if (c == NULL)
 		return;
-	addCommands(c, "main.c");
-	processQueue(c);
+	addCommandsFromFile(c, "main.c");
+	processList(c, 's');
 	printf("processQueue\tfinished\n");
 	killComs(c);
 	printf("killComs\tfinished\n");
@@ -42,14 +43,14 @@ void uhhh2() {
 
 // basic func to test that the queue works
 void uhhh1() {
-	coms* c = initComsDefault();
-	addCommands(c, "main.c");
+	coms* c = initComs(4);
+	addCommandsFromFile(c, "main.c");
 	printComs(c);
-	char* task = popTask(c);
+	char* task = popCommand(c);
 	while (task != NULL) {
 		printf("%d\t%s\n", c->len + 1, task);
 		free(task);
-		task = popTask(c);
+		task = popCommand(c);
 	}
 	killComs(c);
 }

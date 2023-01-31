@@ -5,7 +5,18 @@ This file just has the implementations
 
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <pthread.h>
+#include <unistd.h>
+
 #include "command_list.h"
+#include "worker_thread_functions.h"
+
+char UTF8_BEEP = 7;
+int BUFFER_SIZE = 2^16; // beeg, so buffer overflow is impossible :') (jk, this is bad)
+int BITS_IN_BYTE = 8; // very important const
 
 // BEEP FUNCTION YEAAAAAAHHHHHHHHHHHHHHHHHHHHHH
 void BEEP() {
@@ -135,15 +146,18 @@ void printComs(coms* c) {
 }
 
 void addCommand(coms* c, char* command) {
+	char* buffer = malloc(BUFFER_SIZE * sizeof(char));
 	pthread_mutex_lock(&c->lock);
 	c->commands[c->len] = copyStr(buffer);
 	c->len++;
 	if (c->len == c->clen)
 		doubleClen(c);
 	pthread_mutex_unlock(&c->lock);
+	free(buffer);
 }
 
 void addCommands(coms* c, char* commands, int len) {
+	char* buffer = malloc(BUFFER_SIZE * sizeof(char));
 	pthread_mutex_lock(&c->lock);
 	// check if the length should be doubled in advance, rather than each time
 	if (c->clen <= c->len + len)
@@ -152,6 +166,7 @@ void addCommands(coms* c, char* commands, int len) {
 		c->commands[c->len + i] = copyStr(buffer);
 	c->len += len;
 	pthread_mutex_unlock(&c->lock);
+	free(buffer);
 }
 
 void addCommandsFromFile(coms* c, char* path) {
@@ -181,18 +196,18 @@ void* workerThreadFunc(void* args) {
 	int worker_id = *(int*)(((void**)args)[2]);
 	char command_type = *(char*)(((void**)args)[3]);
 	// Do command
-	commandHandler(command, command_type)
+	commandHandler(command, command_type);
 	// set self to inactive and quit
 	toggleActive(c, worker_id);
 	// if all threads were taken, this next line will mark that a thread has finished executing and can be used for something else
 	// otherwise, it just does nothing
 	pthread_mutex_unlock(&c->all_taken);
-	free(worker_id);
+	//free(&worker_id); TODO: uncomment this
 	free(command);
 	free(args);
 }
 
-void processList(coms* c char type) {
+void processList(coms* c, char type) {
 	while (0 < c->len) {
 		char* command = popCommand(c);
 		int* worker_id = malloc(sizeof(int));
