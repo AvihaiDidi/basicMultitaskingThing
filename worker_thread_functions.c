@@ -17,9 +17,6 @@ void* commandHandler(char* command, char type) {
 			CHs(command);
 			return NULL;
 		break;
-		case 'b':
-			return CHb(command);
-		break;
 		default:
 			printf("Unsupported operation '%c', returning NULL\n", &type);
 	}
@@ -32,8 +29,4 @@ static void CHp(char* command) {
 static void CHs(char* command) {
 	CHp(command);
 	sleep(1);
-}
-
-static *void CHb(char* command) {
-	printf("TODO: implement this\n"); // TODO: implement this
 }
