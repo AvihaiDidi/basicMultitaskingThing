@@ -7,6 +7,7 @@ This file just has the implementations
 
 #include "command_list.h"
 
+// BEEP FUNCTION YEAAAAAAHHHHHHHHHHHHHHHHHHHHHH
 void BEEP() {
 	printf("%c", UTF8_BEEP);
 }
@@ -183,6 +184,9 @@ void* workerThreadFunc(void* args) {
 	commandHandler(command, command_type)
 	// set self to inactive and quit
 	toggleActive(c, worker_id);
+	// if all threads were taken, this next line will mark that a thread has finished executing and can be used for something else
+	// otherwise, it just does nothing
+	pthread_mutex_unlock(&c->all_taken);
 	free(worker_id);
 	free(command);
 	free(args);
@@ -196,8 +200,8 @@ void processList(coms* c char type) {
 		*command_type = type;
 		*worker_id = getInactiveThreadId(c);
 		int time_counter = 1;
-		while (*worker_id == -1) {
-			sleep(1); //TODO: this is dumb, use a second mutex instead of this crap
+		if (*worker_id == -1) {
+			pthread_mutex_lock(&c->all_taken); // wait for a thread to finish
 			*worker_id = getInactiveThreadId(c);
 		}
 		toggleActive(c, *worker_id);
