@@ -154,12 +154,12 @@ void waitForFinish(coms* c) {
 }
 
 void killComs(coms* c) {
-	waitForFinish(c);
 	free(c->threads);
 	for (int i=0;i<c->len;i++)
 		free(c->commands[i]);
 	free(c->commands);
 	pthread_mutex_destroy(&c->lock);
+	pthread_mutex_destroy(&c->all_taken);
 	free(c);
 }
 

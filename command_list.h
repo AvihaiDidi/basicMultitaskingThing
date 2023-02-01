@@ -32,7 +32,8 @@ coms* initComs(int thread_count);
 // waits for all active threads to finish executing
 void waitForFinish(coms* c);
 
-// waits for all active threads to finish executing and then frees all memory used by the command list
+// frees all memory used by the command list
+// note that it doesn't wait for any active threads to finish, and just deletes the pointers to those threads
 void killComs(coms* c);
 
 // removes an item from the top of the list and return it
