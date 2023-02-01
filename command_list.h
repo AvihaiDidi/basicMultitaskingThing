@@ -11,6 +11,18 @@ TODO: maybe make it function like a queue instead in the future
 #ifndef COMMANDLIST
 #define COMMANDLIST
 
+// this struct is the whole point of this file, it's a stack of commands, and threads that perform those commands
+typedef struct command_list {
+	int len;  // actual length of the commands list
+	int clen; // length of the space allocated for command string pointers, must always be >= len
+	char** commands;
+	pthread_mutex_t lock; // lock for modifing the state of the command list
+	pthread_mutex_t all_taken; // lock for when all threads are occupied, and you have to wait for some to become avilable
+	int thread_count;
+	pthread_t* threads;
+	unsigned int activet;
+} coms;
+
 // EXTREMLY important function, it make funny beep
 void BEEP();
 
@@ -33,7 +45,7 @@ void addCommand(coms* c, char* command);
 
 // adds a bunch of commands to the top of the list
 // DOES NOT free the memory used by the commands
-void addCommands(coms* c, char* commands, int len);
+void addCommands(coms* c, char** commands, int len);
 
 // gets an initialized coms pointer and a file path, adds all of the commands from path to c
 void addCommandsFromFile(coms* c, char* path);

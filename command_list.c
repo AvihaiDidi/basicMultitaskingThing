@@ -25,18 +25,6 @@ void BEEP() {
 	printf("%c", UTF8_BEEP);
 }
 
-// this struct is the whole point of this file, it's a stack of commands, and threads that perform those commands
-typedef struct command_list {
-	int len;  // actual length of the commands list
-	int clen; // length of the space allocated for command string pointers, must always be >= len
-	char** commands;
-	pthread_mutex_t lock; // lock for modifing the state of the command list
-	pthread_mutex_t all_taken; // lock for when all threads are occupied, and you have to wait for some to become avilable
-	int thread_count;
-	pthread_t* threads;
-	unsigned int activet;
-} coms;
-
 // a struct that exists specifically to pass arguements to the thread function
 typedef struct command_args {
 	coms* c;
@@ -126,7 +114,7 @@ static int getInactiveThreadId(coms* c) {
 
 /*	the function that the worker threads will execute
 	uses the command_args (comargs) struct to pass arguements */
-void* workerThreadFunc(void* args) {
+static void* workerThreadFunc(void* args) {
 	// do the cast in advance so you won't have to repeat it
 	comargs* cargs = (comargs*)args;
 	// Do command
