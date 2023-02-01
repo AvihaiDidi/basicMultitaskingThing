@@ -11,14 +11,13 @@ void uhhh2();
 void uhhh3();
 
 int main() {
-	uhhh3();
+	testFunction();
 	return 0;
 }
 
-// same as uhhh2 but to miscfuncs.h and with MORE threads, just to see what happens
-void uhhh3() {
-	printf("uh\n");
-	coms* c = initComs(32);
+void testFunction() {
+	printf("========================\ttestFunction meant to demonstrate use of this library. It prints this file (hence the comments in the first and last lines).\n");
+	coms* c = initComs(20);
 	if (c == NULL)
 		return;
 	addCommandsFromFile(c, "main.c");
@@ -27,31 +26,7 @@ void uhhh3() {
 	printf("========================\tprocessQueue\tfinished\n");
 	killComs(c);
 	printf("========================\tkillComs\tfinished\n");
+	printf("========================\tNote that since killComs doesn't wait for thread execution to complete, some lines might still get printed afterwards. This is working as intended.\n")
 }
 
-// the sorta real thing, make a queue and execute (print&wait) it in parallal
-void uhhh2() {
-	coms* c = initComs(20);
-	if (c == NULL)
-		return;
-	addCommandsFromFile(c, "main.c");
-	processList(c, 's');
-	printf("processQueue\tfinished\n");
-	killComs(c);
-	printf("killComs\tfinished\n");
-}
-
-// basic func to test that the queue works
-void uhhh1() {
-	coms* c = initComs(4);
-	addCommandsFromFile(c, "main.c");
-	printComs(c);
-	char* task = popCommand(c);
-	while (task != NULL) {
-		printf("%d\t%s\n", c->len + 1, task);
-		free(task);
-		task = popCommand(c);
-	}
-	killComs(c);
-}
 // THIS IS THE LAST LINE OF main.c
