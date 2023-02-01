@@ -25,6 +25,18 @@ void BEEP() {
 	printf("%c", UTF8_BEEP);
 }
 
+// this struct is the whole point of this file, it's a stack of commands, and threads that perform those commands
+typedef struct command_list {
+	int len;  // actual length of the commands list
+	int clen; // length of the space allocated for command string pointers, must always be >= len
+	char** commands;
+	pthread_mutex_t lock; // lock for modifing the state of the command list
+	pthread_mutex_t all_taken; // lock for when all threads are occupied, and you have to wait for some to become avilable
+	int thread_count;
+	pthread_t* threads;
+	unsigned int activet;
+} coms;
+
 // a struct that exists specifically to pass arguements to the thread function
 typedef struct command_args {
 	coms* c;
@@ -84,6 +96,50 @@ static void toggleActive(coms* c, int id) {
 	pthread_mutex_unlock(&c->lock);
 }
 
+// returns the index of an active thread, if all threads are inactive returns -1
+static int getActiveThreadId(coms* c) {
+	int mask = 1;
+	pthread_mutex_lock(&c->lock);
+	for (int i=0;i<c->thread_count;i++) {
+		if (mask & c->activet)
+			return i;
+		mask = mask << 1;
+	}
+	pthread_mutex_unlock(&c->lock);
+	return -1;
+}
+
+// returns the index of an inactive thread, if all threads are active returns -1
+static int getInactiveThreadId(coms* c) {
+	int mask = 1;
+	pthread_mutex_lock(&c->lock);
+	for (int i=0;i<c->thread_count;i++) {
+		if (mask & ~c->activet) {
+			pthread_mutex_unlock(&c->lock);
+			return i;
+		}
+		mask = mask << 1;
+	}
+	pthread_mutex_unlock(&c->lock);
+	return -1;
+}
+
+/*	the function that the worker threads will execute
+	uses the command_args (comargs) struct to pass arguements */
+void* workerThreadFunc(void* args) {
+	// do the cast in advance so you won't have to repeat it
+	comargs* cargs = (comargs*)args;
+	// Do command
+	void* ret = commandHandler(cargs->command, cargs->command_type);
+	// set self to inactive and quit
+	toggleActive(cargs->c, cargs->worker_id);
+	// if all threads were taken, this next line will mark that a thread has finished executing and can be used for something else
+	// otherwise, it just does nothing
+	pthread_mutex_unlock(&(cargs->c->all_taken));
+	free(cargs);
+	return ret;
+}
+
 coms* initComs(int thread_count) {
 	if (sizeof(unsigned int) * BITS_IN_BYTE < thread_count) {
 		printf("activet is represented using an unsigned int and can only keep track of %lu threads, %d is too high for it.\n", sizeof(unsigned int) * BITS_IN_BYTE, thread_count);
@@ -115,30 +171,11 @@ void killComs(coms* c) {
 	free(c);
 }
 
-int getActiveThreadId(coms* c) {
-	int mask = 1;
+void printComs(coms* c) {
 	pthread_mutex_lock(&c->lock);
-	for (int i=0;i<c->thread_count;i++) {
-		if (mask & c->activet)
-			return i;
-		mask = mask << 1;
-	}
+	for (int i=0;i<c->len;i++)
+		printf("%d\t%s\n", i+1, c->commands[i]);
 	pthread_mutex_unlock(&c->lock);
-	return -1;
-}
-
-int getInactiveThreadId(coms* c) {
-	int mask = 1;
-	pthread_mutex_lock(&c->lock);
-	for (int i=0;i<c->thread_count;i++) {
-		if (mask & ~c->activet) {
-			pthread_mutex_unlock(&c->lock);
-			return i;
-		}
-		mask = mask << 1;
-	}
-	pthread_mutex_unlock(&c->lock);
-	return -1;
 }
 
 char* popCommand(coms* c) {
@@ -153,35 +190,24 @@ char* popCommand(coms* c) {
 	return command;
 }
 
-void printComs(coms* c) {
-	pthread_mutex_lock(&c->lock);
-	for (int i=0;i<c->len;i++)
-		printf("%d\t%s\n", i+1, c->commands[i]);
-	pthread_mutex_unlock(&c->lock);
-}
-
 void addCommand(coms* c, char* command) {
-	char* buffer = malloc(BUFFER_SIZE * sizeof(char));
 	pthread_mutex_lock(&c->lock);
-	c->commands[c->len] = copyStr(buffer);
+	c->commands[c->len] = copyStr(command);
 	c->len++;
 	if (c->len == c->clen)
 		doubleClen(c);
 	pthread_mutex_unlock(&c->lock);
-	free(buffer);
 }
 
-void addCommands(coms* c, char* commands, int len) {
-	char* buffer = malloc(BUFFER_SIZE * sizeof(char));
+void addCommands(coms* c, char** commands, int len) {
 	pthread_mutex_lock(&c->lock);
 	// check if the length should be doubled in advance, rather than each time
 	if (c->clen <= c->len + len)
 		doubleClen(c);
 	for (int i=0; i<len; i++)
-		c->commands[c->len + i] = copyStr(buffer);
+		c->commands[c->len + i] = copyStr(commands[i]);
 	c->len += len;
 	pthread_mutex_unlock(&c->lock);
-	free(buffer);
 }
 
 void addCommandsFromFile(coms* c, char* path) {
@@ -204,20 +230,6 @@ void addCommandsFromFile(coms* c, char* path) {
 	fclose(f);
 }
 
-void* workerThreadFunc(void* args) {
-	// do the cast in advance so you won't have to repeat it
-	comargs* cargs = (comargs*)args;
-	// Do command
-	void* ret = commandHandler(cargs->command, cargs->command_type);
-	// set self to inactive and quit
-	toggleActive(cargs->c, cargs->worker_id);
-	// if all threads were taken, this next line will mark that a thread has finished executing and can be used for something else
-	// otherwise, it just does nothing
-	pthread_mutex_unlock(&(cargs->c->all_taken));
-	free(cargs);
-	return ret;
-}
-
 void processList(coms* c, char type) {
 	while (0 < c->len) {
 		comargs* args = malloc(sizeof(comargs));
@@ -226,7 +238,6 @@ void processList(coms* c, char type) {
 		args->command_type = type;
 		int temp_id = getInactiveThreadId(c);
 		if (temp_id == -1) {
-		//TODO: this is probably the bug
 			pthread_mutex_lock(&c->all_taken); // wait for a thread to finish
 			temp_id  = getInactiveThreadId(c);
 		}
