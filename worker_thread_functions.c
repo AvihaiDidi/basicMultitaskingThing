@@ -36,5 +36,6 @@ void* commandHandler(char* command, char type) {
 		break;
 		default:
 			printf("Unsupported operation '%c', returning NULL\n", type);
+			return NULL;
 	}
 }

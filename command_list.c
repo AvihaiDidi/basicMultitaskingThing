@@ -17,13 +17,21 @@ This file just has the implementations
 #include "worker_thread_functions.h"
 
 char UTF8_BEEP = 7;
-int BUFFER_SIZE = 2^16; // beeg, so buffer overflow is impossible :') (jk, this is bad)
+int BUFFER_SIZE = 10000; // beeg, so buffer overflow is impossible :') (jk, this is bad)
 int BITS_IN_BYTE = 8; // very important const
 
 // BEEP FUNCTION YEAAAAAAHHHHHHHHHHHHHHHHHHHHHH
 void BEEP() {
 	printf("%c", UTF8_BEEP);
 }
+
+// a struct that exists specifically to pass arguements to the thread function
+typedef struct command_args {
+	coms* c;
+	char* command;
+	int worker_id;
+	char command_type;
+} comargs;
 
 // allocates more memory for future commands to be added, this should be done when len==clen
 static void doubleClen(coms* c) {
@@ -56,7 +64,7 @@ static char* copyStr(char* src) {
 	do {
 		c = src[i];
 		if (c == '\n') {
-			tar[i] == '\0';
+			tar[i] = '\0';
 			break;
 		}
 		tar[i++] = c;
@@ -197,41 +205,35 @@ void addCommandsFromFile(coms* c, char* path) {
 }
 
 void* workerThreadFunc(void* args) {
-	// pointer crimes, extremly illegal
-	coms* c = (coms*)(((void**)args)[0]);
-	char* command = (char*)(((void**)args)[1]);
-	int worker_id = *(int*)(((void**)args)[2]);
-	char command_type = *(char*)(((void**)args)[3]);
+	// do the cast in advance so you won't have to repeat it
+	comargs* cargs = (comargs*)args;
 	// Do command
-	commandHandler(command, command_type);
+	void* ret = commandHandler(cargs->command, cargs->command_type);
 	// set self to inactive and quit
-	toggleActive(c, worker_id);
+	toggleActive(cargs->c, cargs->worker_id);
 	// if all threads were taken, this next line will mark that a thread has finished executing and can be used for something else
 	// otherwise, it just does nothing
-	pthread_mutex_unlock(&c->all_taken);
-	//free(&worker_id); TODO: uncomment this
-	free(command);
-	free(args);
+	pthread_mutex_unlock(&(cargs->c->all_taken));
+	free(cargs);
+	return ret;
 }
 
 void processList(coms* c, char type) {
 	while (0 < c->len) {
-		char* command = popCommand(c);
-		int* worker_id = malloc(sizeof(int));
-		char* command_type = malloc(sizeof(char));
-		*command_type = type;
-		*worker_id = getInactiveThreadId(c);
-		int time_counter = 1;
-		if (*worker_id == -1) {
+		comargs* args = malloc(sizeof(comargs));
+		args->c = c;
+		args->command = popCommand(c);
+		args->command_type = type;
+		int temp_id = getInactiveThreadId(c);
+		if (temp_id == -1) {
+		//TODO: this is probably the bug
 			pthread_mutex_lock(&c->all_taken); // wait for a thread to finish
-			*worker_id = getInactiveThreadId(c);
+			temp_id  = getInactiveThreadId(c);
 		}
-		toggleActive(c, *worker_id);
-		void** args = malloc(sizeof(void*) * 4);
-		args[0] = c;
-		args[1] = command;
-		args[2] = worker_id;
-		args[3] = command_type;
-		pthread_create(&c->threads[*worker_id], NULL, workerThreadFunc, (void*)args);
+		toggleActive(c, temp_id);
+		if (getInactiveThreadId(c) == -1)
+			pthread_mutex_lock(&c->all_taken);
+		args->worker_id = temp_id;
+		pthread_create(&c->threads[temp_id], NULL, workerThreadFunc, (void*)args);
 	}
 }
