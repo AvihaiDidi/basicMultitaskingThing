@@ -29,6 +29,9 @@ void BEEP();
 // initiazlie a new command list struct, prints an error message and returns NULL if initialization failed for some reason
 coms* initComs(int thread_count);
 
+// waits for all active threads to finish executing
+void waitForFinish(coms* c);
+
 // waits for all active threads to finish executing and then frees all memory used by the command list
 void killComs(coms* c);
 

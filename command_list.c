@@ -148,9 +148,13 @@ coms* initComs(int thread_count) {
 	return c;
 }
 
-void killComs(coms* c) {
+void waitForFinish(coms* c) {
 	for (int i=0;i<c->thread_count;i++)
 		pthread_join(c->threads[i], NULL);
+}
+
+void killComs(coms* c) {
+	waitForFinish(c);
 	free(c->threads);
 	for (int i=0;i<c->len;i++)
 		free(c->commands[i]);
